@@ -7,25 +7,11 @@ from scipy.spatial.distance import euclidean
 import scipy.io as sio
 
 
-# def pathCost(a,b):
-#     costMatrix , alignmentA,alignmentB = dtw1d(a,b)
-#     idxs = list(zip(np.asarray(alignmentA),np.asarray(alignmentB)))
-#     alignmentA = None
-#     alignmentB = None
-#     cost = 0
-#     for idx in idxs:
-#         cost = cost + costMatrix[idx[0],idx[1]]
-#     costMatrix = None
-#     return cost 
 
 def dtwCost(a,b):
-    ta = np.arange(len(a))
-    tb = np.arange(len(b))
-    x = list(zip(ta,a))
-    y = list(zip(tb,b))
-    cost , path = fastdtw(x,y,dist=euclidean)
-    del path
+    cost , path = fastdtw(a,b)
     return cost 
+    
 
 def loadData(filename ,trainSetPercentage):
     raw_data = sio.loadmat(filename)
@@ -50,11 +36,10 @@ def loadData(filename ,trainSetPercentage):
 
 nNeighbors = 1
 #Load Data
-filename = 'F:\classifiers\ECGData\ECGData.mat'
+filename = '.\ECGData\ECGData.mat'
 trainData,trainLabel,testData,testLabel = loadData(filename,.6) 
-uniqueLabels = np.unique(trainLabel)
-print(dtwCost(trainData[0],trainData[1]))
 
+uniqueLabels = np.unique(trainLabel)
 labelMap = {}
 for idx,label in enumerate(uniqueLabels):
     labelMap[label] = idx
@@ -65,6 +50,12 @@ tstLabel = []
 for label in testLabel:
     tstLabel.append(labelMap[label])
 
-
-classifier = neighbors.KNeighborsClassifier(nNeighbors , metric = dtwCost)
+print("Creating Classifier")
+classifier = neighbors.KNeighborsClassifier(nNeighbors,metric=dtwCost,n_jobs=-1)
+print("Fitting the training data")
 classifier.fit(trainData, trLabel)
+print("Scoring the test data")
+testClasses = classifier.score(testData,tstLabel)
+print("Num of Training Samples: " ,len(trLabel))
+print("Num of Test Samples: " ,len(tstLabel))
+print("Percentage of Test Data Correctly Classified:" , testClasses)
