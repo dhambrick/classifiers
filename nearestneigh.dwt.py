@@ -5,8 +5,19 @@ from sklearn import neighbors, datasets
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 import scipy.io as sio
+import pywt
 
-
+def extractDWTFeatures(timeSeries , waveletType , resultType):
+    cA, cD = pywt.dwt(timeSeries, waveletType)
+    if resultType == 'a' or resultType == 'A':
+        return np.asarray(cA)
+    else:
+        return np.asarray(cD)
+def extractDWTFeaturesBatch(timeSeriesList , waveletType , resultType):
+    features = []
+    for timeSeries in timeSeriesList:
+        features.append(extractDWTFeatures(timeSeries , waveletType , resultType))
+    return features
 
 def dtwCost(a,b):
     cost , path = fastdtw(a,b)
@@ -38,6 +49,8 @@ nNeighbors = 1
 #Load Data
 filename = '.\ECGData\ECGData.mat'
 trainData,trainLabel,testData,testLabel = loadData(filename,.6) 
+trainFeatures = extractDWTFeaturesBatch(trainData,'db1' , 'd')
+testFeatures = extractDWTFeaturesBatch(testData,'db1', 'd')
 
 uniqueLabels = np.unique(trainLabel)
 labelMap = {}
@@ -53,9 +66,9 @@ for label in testLabel:
 print("Creating Classifier")
 classifier = neighbors.KNeighborsClassifier(nNeighbors,metric=dtwCost,n_jobs=-1)
 print("Fitting the training data")
-classifier.fit(trainData, trLabel)
+classifier.fit(trainFeatures, trLabel)
 print("Scoring the test data")
-testClasses = classifier.score(testData,tstLabel)
+testClasses = classifier.score(testFeatures,tstLabel)
 print("Num of Training Samples: " ,len(trLabel))
 print("Num of Test Samples: " ,len(tstLabel))
 print("Percentage of Test Data Correctly Classified:" , testClasses)
